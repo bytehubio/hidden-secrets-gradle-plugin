@@ -5,6 +5,6 @@ val hiddenSecretsVersion = providers.gradleProperty("version")
     .get()
 
 gradle.allprojects {
-    group = "com.bytehubio.hiddensecrets"
+    group = "com.github.bytehubio"
     version = hiddenSecretsVersion
 }

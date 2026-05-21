@@ -172,18 +172,23 @@ Pull Requests are very welcome!
 
 To get started, checkout the code and run `./gradlew build` to create the `.jar` file in `/build/libs/`.
 
-## Publishing to GitHub Packages
+## Publishing with JitPack
 
-Set `GITHUB_ACTOR` and `GITHUB_TOKEN` in your environment. Then publish a version with:
+JitPack builds this plugin from a Git tag. Create and push a version tag:
 
 ```shell
-JAVA_HOME=$(/usr/libexec/java_home -v 25) ./gradlew clean publish -Pversion=1.1.1 --stacktrace
+git tag 1.1.2
+git push origin 1.1.2
 ```
 
-GitHub Packages does not overwrite an already published Maven version. If a publish fails with `409 Conflict`, publish a new version.
+Then check the build at:
+
+```text
+https://jitpack.io/#bytehubio/hidden-secrets-gradle-plugin/1.1.2
+```
 
 The published plugin id is `com.bytehubio.hiddensecrets`.
-The implementation artifact is `com.bytehubio.hiddensecrets:hidden-secrets-gradle-plugin`.
+The JitPack implementation artifact is `com.github.bytehubio:hidden-secrets-gradle-plugin`.
 
 Before opening a PR :
 - make sure that you have tested your code carefully
