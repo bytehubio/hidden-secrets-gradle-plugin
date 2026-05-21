@@ -1,13 +1,11 @@
 package com.klaxit.hiddensecrets
 
-import org.gradle.api.Action
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputFile
-import org.gradle.api.tasks.TaskAction
 import java.io.File
 import java.nio.charset.Charset
 import java.util.Properties
@@ -22,6 +20,15 @@ open class HiddenSecretsPlugin : Plugin<Project> {
         private const val KEY_PLACEHOLDER = "YOUR_KEY_GOES_HERE"
         private const val PACKAGE_PLACEHOLDER = "YOUR_PACKAGE_GOES_HERE"
         private const val KOTLIN_FILE_NAME = "Secrets.kt"
+        private const val CPP_RESOURCE_FOLDER = "cpp"
+        private const val KOTLIN_RESOURCE_FOLDER = "kotlin"
+        private val CPP_FILE_NAMES = listOf(
+            "CMakeLists.txt",
+            "secrets.cpp",
+            "secrets.hpp",
+            "sha256.cpp",
+            "sha256.hpp"
+        )
 
         // Tasks
         const val TASK_GROUP = "Hide secrets"
@@ -51,6 +58,7 @@ open class HiddenSecretsPlugin : Plugin<Project> {
     override fun apply(project: Project) {
 
         val tmpFolder = java.lang.String.format("%s/hidden-secrets-tmp", project.buildDir)
+        val pluginArchive = javaClass.protectionDomain.codeSource.location!!.toExternalForm()
 
         /**
          * Get the package name of the Android app on which this plugin is used
@@ -231,6 +239,32 @@ open class HiddenSecretsPlugin : Plugin<Project> {
                 ?: throw IllegalStateException("Did not find temporary template for secrets!")
         }
 
+        fun getTemplateText(resourcePath: String): String {
+            val stream = javaClass.classLoader.getResourceAsStream(resourcePath)
+                ?: throw IllegalStateException("Did not find hidden-secrets resource: $resourcePath")
+            return stream.use {
+                it.bufferedReader(Charset.defaultCharset()).readText()
+            }
+        }
+
+        fun copyTemplateFile(
+            resourcePath: String,
+            destination: File,
+            overwrite: Boolean = false,
+            logExisting: Boolean = true,
+            transform: (String) -> String = { it }
+        ) {
+            if (!overwrite && destination.exists()) {
+                if (logExisting) {
+                    println("${destination.name} already exists")
+                }
+                return
+            }
+            destination.parentFile?.mkdirs()
+            println("Copy $resourcePath to\n$destination")
+            destination.writeText(transform(getTemplateText(resourcePath)), Charset.defaultCharset())
+        }
+
         /**
          * If found, returns the Secrets.kt file in the Android app
          */
@@ -242,15 +276,14 @@ open class HiddenSecretsPlugin : Plugin<Project> {
          * Copy Cpp files from the lib to the Android project
          * @param overwrite whether to overwrite existing files
          */
-        fun copyCppFiles(overwrite: Boolean = false) {
-            project.file("$tmpFolder/cpp/").listFiles()?.forEach {
-                val destination = getCppDestination(it.name)
-                if (!overwrite && destination.exists()) {
-                    println("${it.name} already exists")
-                } else {
-                    println("Copy $it.name to\n$destination")
-                    it.copyTo(destination, true)
-                }
+        fun copyCppFiles(overwrite: Boolean = false, logExisting: Boolean = true) {
+            CPP_FILE_NAMES.forEach { fileName ->
+                copyTemplateFile(
+                    resourcePath = "$CPP_RESOURCE_FOLDER/$fileName",
+                    destination = getCppDestination(fileName),
+                    overwrite = overwrite,
+                    logExisting = logExisting
+                )
             }
         }
 
@@ -258,27 +291,33 @@ open class HiddenSecretsPlugin : Plugin<Project> {
          * Copy Kotlin file Secrets.kt from the lib to the Android project
          * @param overwrite whether to overwrite existing files
          */
-        fun copyKotlinFile(overwrite: Boolean = false) {
+        fun copyKotlinFile(overwrite: Boolean = false, logExisting: Boolean = true) {
+            val packageName = getPackageNameParam()
             val existingKotlinFile: File? = getKotlinFile()
             if (existingKotlinFile != null) {
                 if (overwrite) {
                     println("Overwriting existing $KOTLIN_FILE_NAME.")
-                    tmpKotlinFile().copyTo(existingKotlinFile, true)
+                    copyTemplateFile(
+                        resourcePath = "$KOTLIN_RESOURCE_FOLDER/$KOTLIN_FILE_NAME",
+                        destination = existingKotlinFile,
+                        overwrite = true,
+                        transform = { it.replace(PACKAGE_PLACEHOLDER, packageName) }
+                    )
                 } else {
-                    println("$KOTLIN_FILE_NAME already exists")
+                    if (logExisting) {
+                        println("$KOTLIN_FILE_NAME already exists")
+                    }
                     return
                 }
             } else {
-                val packageName = getPackageNameParam()
-                project.file("$tmpFolder/kotlin/").listFiles()?.forEach {
-                    val destination = getKotlinDestination(packageName, it.name)
-                    if (destination.exists()) {
-                        println("${it.name} already exists")
-                    } else {
-                        println("Copy $it.name to\n$destination")
-                        it.copyTo(destination, true)
-                    }
-                }
+                val destination = getKotlinDestination(packageName, KOTLIN_FILE_NAME)
+                copyTemplateFile(
+                    resourcePath = "$KOTLIN_RESOURCE_FOLDER/$KOTLIN_FILE_NAME",
+                    destination = destination,
+                    overwrite = overwrite,
+                    logExisting = logExisting,
+                    transform = { it.replace(PACKAGE_PLACEHOLDER, packageName) }
+                )
             }
         }
 
@@ -345,19 +384,26 @@ open class HiddenSecretsPlugin : Plugin<Project> {
             println("✅ You can now get your secret key by calling : Secrets().get$keyName(packageName)")
         }
 
+        // Android Studio sync configures CMake before command tasks can run.
+        // Keep baseline native sources present so a clean checkout can sync.
+        copyCppFiles(logExisting = false)
+        project.afterEvaluate {
+            if (getKotlinFile() == null) {
+                runCatching {
+                    copyKotlinFile(logExisting = false)
+                }.onFailure {
+                    project.logger.warn("Could not create $KOTLIN_FILE_NAME template: ${it.message}")
+                }
+            }
+        }
+
         /**
          * Unzip plugin into tmp directory
          */
-        project.tasks.create(TASK_UNZIP_HIDDEN_SECRETS, Copy::class.java,
-            object : Action<Copy> {
-                @TaskAction
-                override fun execute(copy: Copy) {
-                    // in the case of buildSrc dir
-                    copy.from(project.zipTree(javaClass.protectionDomain.codeSource.location!!.toExternalForm()))
-                    println("Unzip jar to $tmpFolder")
-                    copy.into(tmpFolder)
-                }
-            }).apply {
+        project.tasks.register(TASK_UNZIP_HIDDEN_SECRETS, Copy::class.java) {
+            // in the case of buildSrc dir
+            from(project.zipTree(pluginArchive))
+            into(tmpFolder)
             this.group = TASK_GROUP
             this.description = "Unzip plugin into tmp directory"
         }
@@ -405,7 +451,6 @@ open class HiddenSecretsPlugin : Plugin<Project> {
         {
             this.group = TASK_GROUP
             this.description = "Obfuscate a key and add it to your Android project"
-            dependsOn(TASK_UNZIP_HIDDEN_SECRETS)
 
             doLast {
                 // Assert that the key is present
@@ -429,7 +474,6 @@ open class HiddenSecretsPlugin : Plugin<Project> {
         {
             this.group = TASK_GROUP
             this.description = "Re-generate and obfuscate keys from properties file and add it to your Android project"
-            dependsOn(TASK_UNZIP_HIDDEN_SECRETS)
 
             doLast {
                 // Create a clean copy of dependency files

@@ -177,18 +177,20 @@ To get started, checkout the code and run `./gradlew build` to create the `.jar`
 JitPack builds this plugin from a Git tag. Create and push a version tag:
 
 ```shell
-git tag 1.1.2
-git push origin 1.1.2
+git tag 1.1.3
+git push origin 1.1.3
 ```
 
 Then check the build at:
 
 ```text
-https://jitpack.io/#bytehubio/hidden-secrets-gradle-plugin/1.1.2
+https://jitpack.io/#bytehubio/hidden-secrets-gradle-plugin/1.1.3
 ```
 
 The published plugin id is `com.bytehubio.hiddensecrets`.
 The JitPack implementation artifact is `com.github.bytehubio:hidden-secrets-gradle-plugin`.
+
+When applied to an Android project, the plugin creates missing `src/main/cpp` template files during Gradle configuration so Android Studio sync can configure CMake on a clean checkout. Run `hideSecret` or `hideSecretFromPropertiesFile` to regenerate the actual secret methods and values.
 
 Before opening a PR :
 - make sure that you have tested your code carefully
