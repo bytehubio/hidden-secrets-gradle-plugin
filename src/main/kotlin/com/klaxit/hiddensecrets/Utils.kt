@@ -1,6 +1,5 @@
 package com.klaxit.hiddensecrets
 
-import com.google.common.annotations.VisibleForTesting
 import org.gradle.api.Project
 import java.io.File
 import java.nio.charset.Charset
@@ -25,7 +24,6 @@ object Utils {
     /**
      * Encode string to sha256
      */
-    @VisibleForTesting
     fun sha256(toHash: String): String {
         val bytes = toHash.toByteArray()
         val md = MessageDigest.getInstance("SHA-256")

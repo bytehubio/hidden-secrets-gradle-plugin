@@ -1,7 +1,6 @@
 plugins {
-    id("com.gradle.plugin-publish") version "1.0.0"
-    id("io.gitlab.arturbosch.detekt") version "1.19.0"
     `kotlin-dsl`
+    id("com.gradle.plugin-publish") version "1.2.1"
     `maven-publish`
 }
 
@@ -12,42 +11,29 @@ repositories {
 }
 
 dependencies {
-    implementation("com.android.tools.build:gradle:4.2.2")
-
     testImplementation("io.kotest:kotest-runner-junit5-jvm:5.4.2")
     testImplementation("io.kotest:kotest-assertions-core-jvm:5.4.2")
     testImplementation("io.kotest:kotest-framework-datatest-jvm:5.4.2")
     testImplementation("junit:junit:4.13.2")
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(8))
-    }
-}
-
-pluginBundle {
-    website = "https://github.com/klaxit/hidden-secrets-gradle-plugin"
-    vcsUrl = "https://github.com/klaxit/hidden-secrets-gradle-plugin.git"
-    tags = listOf("android", "hide", "secret", "key", "string", "obfuscate")
-}
+//java {
+//    toolchain {
+//        languageVersion.set(JavaLanguageVersion.of(11))
+//    }
+//}
 
 gradlePlugin {
+    website.set("https://github.com/andrey-ber/hidden-secrets-gradle-plugin")
+    vcsUrl.set("https://github.com/andrey-ber/hidden-secrets-gradle-plugin.git")
     plugins {
         create("HiddenSecretsPlugin") {
-            id = "com.klaxit.hiddensecrets"
+            id = "com.andreyber.hiddensecrets"
             displayName = "Hidden Secrets Plugin"
-            description = "This plugin allows any Android developer" +
-                " to deeply hide secrets in its project to prevent credentials harvesting."
+            description = "This plugin allows any Android developer to deeply hide secrets in its project."
             implementationClass = "com.klaxit.hiddensecrets.HiddenSecretsPlugin"
+            tags.set(listOf("android", "hide", "secret", "key", "string", "obfuscate"))
         }
-    }
-}
-
-detekt {
-    reports {
-        xml.enabled = false
-        sarif.enabled = false
     }
 }
 

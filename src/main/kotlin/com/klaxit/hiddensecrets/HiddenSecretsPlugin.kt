@@ -1,6 +1,5 @@
 package com.klaxit.hiddensecrets
 
-import com.android.build.gradle.AppExtension
 import org.gradle.api.Action
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Plugin
@@ -56,13 +55,36 @@ open class HiddenSecretsPlugin : Plugin<Project> {
         /**
          * Get the package name of the Android app on which this plugin is used
          */
-        fun getAppPackageName(): String? {
-            val androidExtension = project.extensions.getByName("android")
+        fun getPropertyValue(target: Any, propertyName: String): Any? {
+            val getterName = "get" + propertyName.replaceFirstChar { it.uppercase() }
+            return target.javaClass.methods
+                .firstOrNull { it.name == getterName && it.parameterCount == 0 }
+                ?.invoke(target)
+        }
 
-            if (androidExtension is AppExtension) {
-                return androidExtension.defaultConfig.applicationId
+        fun getStringValue(value: Any?): String? {
+            return when (value) {
+                is String -> value
+                null -> null
+                else -> {
+                    val getter = value.javaClass.methods
+                        .firstOrNull { it.name == "getOrNull" && it.parameterCount == 0 }
+                        ?: value.javaClass.methods
+                            .firstOrNull { it.name == "get" && it.parameterCount == 0 }
+                    getter?.invoke(value) as? String
+                }
             }
-            return null
+        }
+
+        fun getAppPackageName(): String? {
+            val androidExtension = project.extensions.findByName("android") ?: return null
+            val defaultConfig = getPropertyValue(androidExtension, "defaultConfig")
+            val applicationId = getStringValue(getPropertyValue(defaultConfig ?: androidExtension, "applicationId"))
+            if (!applicationId.isNullOrEmpty()) {
+                return applicationId
+            }
+
+            return getStringValue(getPropertyValue(androidExtension, "namespace"))
         }
 
         /**
@@ -108,7 +130,13 @@ open class HiddenSecretsPlugin : Plugin<Project> {
             return if (project.hasProperty(PROP_FILE_NAME)) {
                 val propsPathRaw = project.property(PROP_FILE_NAME)
                 if (propsPathRaw != null) {
-                    File(project.rootDir, propsPathRaw as String)
+                    val propsPath = propsPathRaw as String
+                    val propsFile = File(project.rootDir, propsPath)
+                    if (propsFile.exists() || propsPath.contains("/") || propsPath.contains(File.separator)) {
+                        propsFile
+                    } else {
+                        File(project.rootDir, "config/$propsPath")
+                    }
                 } else {
                     throw IllegalArgumentException(
                         "Cannot find properties (${propsPathRaw})!" +
@@ -321,7 +349,7 @@ open class HiddenSecretsPlugin : Plugin<Project> {
          * Unzip plugin into tmp directory
          */
         project.tasks.create(TASK_UNZIP_HIDDEN_SECRETS, Copy::class.java,
-            object : Action<Copy?> {
+            object : Action<Copy> {
                 @TaskAction
                 override fun execute(copy: Copy) {
                     // in the case of buildSrc dir
