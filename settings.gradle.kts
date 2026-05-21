@@ -1,4 +1,4 @@
-rootProject.name = "HiddenSecretsPlugin"
+rootProject.name = "hidden-secrets-gradle-plugin"
 
 val hiddenSecretsVersion = providers.gradleProperty("version")
     .orElse("1.0.0")

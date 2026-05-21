@@ -177,12 +177,13 @@ To get started, checkout the code and run `./gradlew build` to create the `.jar`
 Set `GITHUB_ACTOR` and `GITHUB_TOKEN` in your environment. Then publish a version with:
 
 ```shell
-JAVA_HOME=$(/usr/libexec/java_home -v 25) ./gradlew clean publish -Pversion=1.0.1 --stacktrace
+JAVA_HOME=$(/usr/libexec/java_home -v 25) ./gradlew clean publish -Pversion=1.1.1 --stacktrace
 ```
 
 GitHub Packages does not overwrite an already published Maven version. If a publish fails with `409 Conflict`, publish a new version.
 
 The published plugin id is `com.bytehubio.hiddensecrets`.
+The implementation artifact is `com.bytehubio.hiddensecrets:hidden-secrets-gradle-plugin`.
 
 Before opening a PR :
 - make sure that you have tested your code carefully
