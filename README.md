@@ -180,6 +180,8 @@ Set `GITHUB_ACTOR` and `GITHUB_TOKEN` in your environment. Then publish a versio
 JAVA_HOME=$(/usr/libexec/java_home -v 25) ./gradlew clean publish -Pversion=1.0.1 --stacktrace
 ```
 
+GitHub Packages does not overwrite an already published Maven version. If a publish fails with `409 Conflict`, publish a new version.
+
 The published plugin id is `com.bytehubio.hiddensecrets`.
 
 Before opening a PR :
