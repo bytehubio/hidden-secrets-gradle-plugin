@@ -1,6 +1,10 @@
 rootProject.name = "HiddenSecretsPlugin"
 
+val hiddenSecretsVersion = providers.gradleProperty("version")
+    .orElse("1.0.0")
+    .get()
+
 gradle.allprojects {
-    group = "com.bytehub.hiddensecrets"
-    version = "1.0.0"
+    group = "com.bytehubio.hiddensecrets"
+    version = hiddenSecretsVersion
 }

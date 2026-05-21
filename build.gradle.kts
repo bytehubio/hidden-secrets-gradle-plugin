@@ -24,15 +24,28 @@ dependencies {
 //}
 
 gradlePlugin {
-    website.set("https://github.com/andrey-ber/hidden-secrets-gradle-plugin")
-    vcsUrl.set("https://github.com/andrey-ber/hidden-secrets-gradle-plugin.git")
+    website.set("https://github.com/bytehubio/hidden-secrets-gradle-plugin")
+    vcsUrl.set("https://github.com/bytehubio/hidden-secrets-gradle-plugin.git")
     plugins {
         create("HiddenSecretsPlugin") {
-            id = "com.andreyber.hiddensecrets"
+            id = "com.bytehubio.hiddensecrets"
             displayName = "Hidden Secrets Plugin"
             description = "This plugin allows any Android developer to deeply hide secrets in its project."
             implementationClass = "com.klaxit.hiddensecrets.HiddenSecretsPlugin"
             tags.set(listOf("android", "hide", "secret", "key", "string", "obfuscate"))
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/bytehubio/hidden-secrets-gradle-plugin")
+            credentials {
+                username = findProperty("gpr.user") as String? ?: System.getenv("GITHUB_ACTOR")
+                password = findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
+            }
         }
     }
 }

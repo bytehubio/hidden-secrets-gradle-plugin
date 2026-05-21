@@ -172,6 +172,16 @@ Pull Requests are very welcome!
 
 To get started, checkout the code and run `./gradlew build` to create the `.jar` file in `/build/libs/`.
 
+## Publishing to GitHub Packages
+
+Set `GITHUB_ACTOR` and `GITHUB_TOKEN` in your environment. Then publish a version with:
+
+```shell
+JAVA_HOME=$(/usr/libexec/java_home -v 25) ./gradlew clean publish -Pversion=1.0.1 --stacktrace
+```
+
+The published plugin id is `com.bytehubio.hiddensecrets`.
+
 Before opening a PR :
 - make sure that you have tested your code carefully
 - `./gradlew test` must succeed
